@@ -135,9 +135,40 @@ function connectSSE() {
     }
   };
   eventSource.onerror = () => {
-    // Browser will auto-reconnect EventSource
+    if (eventSource.readyState === EventSource.CLOSED) {
+      showToast('Потеря соединения. Попробуй переподключиться');
+      setTimeout(() => {
+        if (localStorage.getItem('bunker_room') && localStorage.getItem('bunker_name')) {
+          document.getElementById('reconnect-btn')?.classList.remove('hidden');
+        }
+      }, 1000);
+    }
   };
 }
+
+window.reconnect = async () => {
+  const code = localStorage.getItem('bunker_room');
+  const name = localStorage.getItem('bunker_name');
+  if (!code || !name) { showToast('Нет данных для переподключения'); return; }
+  showToast('Переподключаюсь...');
+  const res = await api('/api/rejoin', { code, name });
+  if (res.type === 'error') { showToast(res.message); return; }
+  playerId = res.playerId;
+  roomCode = code;
+  isHost = res.room.hostId === playerId;
+  roomState = res.room;
+  myRole = null;
+  if (eventSource) eventSource.close();
+  document.getElementById('room-code-label').textContent = code;
+  if (res.room.status === 'waiting' || res.room.phase === 'lobby') {
+    showScreen('screen-lobby');
+    renderLobby(res.room);
+  } else {
+    showScreen('screen-game-mafia');
+    renderMafiaGame(res.room);
+  }
+  connectSSE();
+};
 
 window.showCreateRoom = () => {
   document.getElementById('create-room-form').classList.remove('hidden');
@@ -168,6 +199,7 @@ window.pickGame = (game) => {
 window.createRoom = async () => {
   const name = document.getElementById('host-name-input').value.trim();
   if (!name) { showToast('Введи имя'); return; }
+  localStorage.setItem('bunker_name', name);
   const raw = document.getElementById('game-select')?.value || 'mafia';
   const game = raw === 'spy' ? 'spy' : raw === 'alias' ? 'alias' : raw === 'bunker' ? 'bunker' : 'mafia';
   const res = await api('/api/create', { name, game });
@@ -178,6 +210,7 @@ window.createRoom = async () => {
   }
   playerId = res.playerId;
   roomCode = res.room.code;
+  localStorage.setItem('bunker_room', roomCode);
   isHost = true;
   roomState = res.room;
   myRole = null;
@@ -193,6 +226,8 @@ window.joinRoom = async () => {
   const code = document.getElementById('room-code-input').value.trim().toUpperCase();
   if (!name) { showToast('Введи имя'); return; }
   if (!code) { showToast('Введи код комнаты'); return; }
+  localStorage.setItem('bunker_name', name);
+  localStorage.setItem('bunker_room', code);
   const res = await api('/api/join', { name, code });
   if (res.type === 'error') { showToast(res.message); return; }
   playerId = res.playerId;
@@ -233,6 +268,10 @@ window.goHome = () => {
   document.querySelector('.home-actions').classList.remove('hidden');
   document.getElementById('create-room-form').classList.add('hidden');
   document.getElementById('join-room-form').classList.add('hidden');
+  const savedRoom = localStorage.getItem('bunker_room');
+  const savedName = localStorage.getItem('bunker_name');
+  const reconnectBtn = document.getElementById('reconnect-btn');
+  if (reconnectBtn) reconnectBtn.classList.toggle('hidden', !(savedRoom && savedName));
 };
 
 window.startGame = async () => {
@@ -298,29 +337,14 @@ window.continueGame = () => {
   document.getElementById('game-info').classList.add('hidden');
 };
 
-window._adminOpen = false;
-window.toggleAdmin = () => {
-  window._adminOpen = !window._adminOpen;
-  if (roomState) {
-    if (currentScreen === 'screen-lobby') renderLobby(roomState);
-    else if (currentScreen === 'screen-game-mafia') renderMafiaGame(roomState);
-    else if (currentScreen === 'screen-game-spy') renderSpyGame(roomState);
-      else if (currentScreen === 'screen-game-alias') renderAliasGame(roomState);
-  }
-};
-
-window.addBot = async () => {
-  const res = await api('/api/add_bot', { room: roomCode, player: playerId });
-  if (res.type === 'error') { showToast(res.message); return; }
-  showToast('Бот добавлен!');
-};
-
-window.updateRoleCheckboxes = () => {
-  // All roles can be combined freely
-};
-
 window.removeBot = async (botId) => {
   await api('/api/admin_command', { room: roomCode, player: playerId, cmd: 'remove_bot', target: botId });
+};
+
+window.updateRoleCheckboxes = () => {};
+
+window.kickPlayer = async (pid) => {
+  await api('/api/admin_command', { room: roomCode, player: playerId, cmd: 'kick', target: pid });
 };
 
 window.adminKill = async (pid) => {
@@ -359,10 +383,10 @@ function renderLobby(room) {
   document.getElementById('lobby-players').innerHTML = players.map(p =>
     `<div class="player-item ${p.isHost ? 'host' : ''}">
       <div class="player-avatar">${p.name[0].toUpperCase()}</div>
-      <div class="player-name">${escapeHtml(p.name)}${p.isBot ? ' 鈽�' : ''}</div>
+      <div class="player-name">${escapeHtml(p.name)}</div>
       ${game === 'alias' ? `<span class="player-team-badge team-${p.aliasTeam || 'red'}">${getAliasTeamName(p.aliasTeam || 'red')}</span>` : ''}
       ${p.isHost ? '<span class="player-badge">' + hostBadge + '</span>' : ''}
-      ${p.isBot && isHost ? `<button class="btn-remove-bot" onclick="removeBot('${p.id}')">鉁昞/button>` : ''}
+      ${isHost && !p.isHost ? `<button class="btn-remove-bot" onclick="kickPlayer('${p.id}')" title="Кикнуть">✕</button>` : ''}
     </div>`
   ).join('');
 
