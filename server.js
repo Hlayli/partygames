@@ -1108,7 +1108,9 @@ http.createServer((req, res) => {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Access-Control-Allow-Origin': '*',
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Transfer-Encoding': 'chunked'
     });
     const playerId = params.get('player');
     res.write('data: ' + JSON.stringify({ type: 'state_update', room: roomState(code, playerId) }) + '\n\n');
