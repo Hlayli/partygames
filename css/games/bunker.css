@@ -1,0 +1,74 @@
+.bunker-catastrophe-card {
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.bunker-catastrophe-card .cat-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.bunker-type-info {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  margin: 6px 0;
+}
+
+.bunker-player-card .bp-line {
+  font-size: 0.7rem;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.bunker-player-card .bp-lbl {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.bunker-player-card .bp-out {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--danger);
+  margin-top: 3px;
+}
+.bunker-player-card .bp-voted {
+  font-size: 0.62rem;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.bunker-my-cards { width: 100%; }
+.bunker-my-cards .bm-row {
+  font-size: 0.78rem;
+  padding: 3px 0;
+  line-height: 1.35;
+  border-bottom: 1px solid var(--border);
+}
+.bunker-my-cards .bm-row:last-child { border-bottom: none; }
+.bunker-my-cards .bm-lbl {
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.bunker-result-card {
+  text-align: center;
+  padding: 10px;
+  width: 100%;
+}
+.br-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+.br-title.survived { color: var(--success); }
+.br-title.dead { color: var(--danger); }
+.br-detail { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; line-height: 1.4; }
+.br-list { font-size: 0.82rem; color: var(--text); margin-bottom: 4px; }
+.br-list strong { color: var(--primary); }

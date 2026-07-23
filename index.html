@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Party Game Hub</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/games/mafia.css">
+  <link rel="stylesheet" href="css/games/spy.css">
+  <link rel="stylesheet" href="css/games/alias.css">
+  <link rel="stylesheet" href="css/games/bunker.css">
+</head>
+<body>
+  <div id="app">
+    <div id="screen-home" class="screen active">
+      <div class="home-content">
+        <h1 class="app-title">Party Game Hub</h1>
+        <p class="app-subtitle">Играй с друзьями в любую игру!</p>
+        <div class="home-actions">
+          <button class="btn btn-primary" onclick="showCreateRoom()">Создать комнату</button>
+          <button class="btn btn-secondary" onclick="showJoinRoom()">Присоединиться</button>
+        </div>
+        <div id="create-room-form" class="form-container hidden">
+          <input type="text" id="host-name-input" class="input" placeholder="Твоё имя" maxlength="20">
+          <div class="game-pick" id="game-pick">
+            <button type="button" class="game-pick-btn" data-game="mafia" onclick="pickGame('mafia')">Мафия</button>
+            <button type="button" class="game-pick-btn" data-game="spy" onclick="pickGame('spy')">Шпион</button>
+            <button type="button" class="game-pick-btn" data-game="alias" onclick="pickGame('alias')">Элиас</button>
+            <button type="button" class="game-pick-btn" data-game="bunker" onclick="pickGame('bunker')">Бункер</button>
+          </div>
+          <input type="hidden" id="game-select" value="mafia">
+          <button class="btn btn-primary" onclick="createRoom()">Создать</button>
+          <button class="btn btn-text" onclick="hideCreateRoom()">Назад</button>
+        </div>
+        <div id="join-room-form" class="form-container hidden">
+          <input type="text" id="join-name-input" class="input" placeholder="Твоё имя" maxlength="20">
+          <input type="text" id="room-code-input" class="input" placeholder="Код комнаты" maxlength="6" style="text-transform:uppercase">
+          <button class="btn btn-primary" onclick="joinRoom()">Войти</button>
+          <button class="btn btn-text" onclick="hideJoinRoom()">Назад</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-lobby" class="screen">
+      <div class="lobby-content">
+        <h2>Лобби</h2>
+        <p class="room-code-display">Код комнаты: <strong id="room-code-label">----</strong></p>
+        <p class="lobby-game-label" id="lobby-game-label"></p>
+        <div class="players-list" id="lobby-players"></div>
+        <div id="alias-team-selector" class="hidden"></div>
+        <div id="lobby-host-controls" class="hidden">
+          <div id="mafia-settings" class="mafia-settings">
+            <label>
+              Количество мафии:
+              <select id="mafia-count-input" class="input input-inline">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </label>
+          </div>
+          <div id="spy-settings" class="mafia-settings hidden">
+            <label>
+              Вопросов на человека:
+              <select id="spy-questions-input" class="input input-inline">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </label>
+          </div>
+          <div id="alias-settings" class="mafia-settings hidden">
+            <div class="alias-settings-row">
+              <label>Время: <select id="alias-round-seconds-input" class="input input-inline">
+                <option value="30">30с</option>
+                <option value="60" selected>60с</option>
+                <option value="90">90с</option>
+                <option value="120">120с</option>
+              </select></label>
+              <label>Кругов: <select id="alias-total-rounds-input" class="input input-inline">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select></label>
+            </div>
+          </div>
+          <p class="admin-hint" id="lobby-player-hint">Игроков: 0</p>
+          <button class="btn btn-primary btn-large" id="start-game-btn" onclick="startGame()" disabled>Начать игру</button>
+        </div>
+        <div id="admin-panel" class="hidden"></div>
+        <button class="btn btn-text" onclick="leaveRoom()">Покинуть комнату</button>
+      </div>
+    </div>
+
+    <div id="screen-game-mafia" class="screen">
+      <div class="game-container">
+        <div class="game-header">
+          <span class="game-phase" id="mafia-phase-label">Ожидание...</span>
+          <span class="game-round" id="mafia-round-label">Раунд 1</span>
+        </div>
+
+        <div id="night-killed-info" class="night-killed-info hidden"></div>
+
+        <div class="game-players-grid" id="mafia-players-grid"></div>
+
+        <div class="game-actions" id="mafia-actions">
+          <div id="player-actions" class="hidden">
+            <p class="action-prompt" id="vote-prompt">Голосование</p>
+            <div class="vote-targets" id="vote-targets"></div>
+            <button class="btn btn-primary" id="confirm-vote-btn" onclick="confirmVote()">Голосовать</button>
+          </div>
+
+          <div id="host-panel" class="hidden"></div>
+
+          <div class="game-info hidden" id="game-info">
+            <p id="info-text"></p>
+            <p class="admin-hint">Ждём ведущего</p>
+          </div>
+          <div class="game-result hidden" id="game-result">
+            <h2 id="result-title"></h2>
+            <p id="result-text" class="hidden"></p>
+            <button class="btn btn-primary" onclick="returnToLobby()">В лобби</button>
+          </div>
+        </div>
+
+        <div class="game-sidebar" id="mafia-sidebar">
+          <div class="player-role-card" id="my-role-card">
+            <p>Твоя роль: <strong id="my-role-label">?</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-game-spy" class="screen">
+      <div class="game-container spy-container">
+        <div class="game-header">
+          <span class="game-phase" id="spy-phase-label">Шпион</span>
+          <span class="game-round" id="spy-round-label">Раунд 1</span>
+        </div>
+
+        <div class="spy-card" id="spy-main-card">
+          <p class="spy-card-label" id="spy-card-label">Тема</p>
+          <p class="spy-card-value" id="spy-card-value">-</p>
+          <p class="spy-card-hint" id="spy-card-hint"></p>
+        </div>
+
+        <div class="game-players-grid" id="spy-players-grid"></div>
+
+        <div id="spy-player-panel" class="hidden"></div>
+
+        <div id="spy-reveal-info" class="hidden"></div>
+
+        <div id="spy-host-panel" class="hidden"></div>
+      </div>
+    </div>
+
+    <div id="screen-game-alias" class="screen">
+      <div class="game-container alias-container">
+        <div class="game-header">
+          <span class="game-phase" id="alias-phase-label">Элиас</span>
+          <span class="game-round" id="alias-round-label">Раунд 1</span>
+        </div>
+
+        <div class="alias-scoreboard" id="alias-scoreboard"></div>
+
+        <div class="alias-word-card" id="alias-word-card">
+          <p class="alias-word-label" id="alias-word-label">Слово</p>
+          <p class="alias-word-value" id="alias-word-value">-</p>
+          <p class="alias-word-hint" id="alias-word-hint"></p>
+        </div>
+
+        <div class="game-players-grid" id="alias-players-grid"></div>
+
+        <div id="alias-player-panel" class="hidden"></div>
+        <div id="alias-host-panel" class="hidden"></div>
+        <div id="alias-result" class="hidden"></div>
+      </div>
+    </div>
+
+    <div id="screen-game-bunker" class="screen">
+      <div class="game-container bunker-container">
+        <div class="game-header">
+          <span class="game-phase" id="bunker-phase-label">Бункер</span>
+          <span class="game-round" id="bunker-round-label"></span>
+        </div>
+
+        <div id="bunker-catastrophe-card" class="hidden"></div>
+
+        <div class="game-players-grid" id="bunker-players-grid"></div>
+
+        <div class="game-actions" id="bunker-actions">
+          <div id="bunker-player-panel" class="hidden"></div>
+          <div id="bunker-host-panel" class="hidden"></div>
+          <div id="bunker-result-panel" class="hidden"></div>
+        </div>
+
+        <div class="game-sidebar" id="bunker-sidebar">
+          <div class="player-role-card" id="bunker-my-card">
+            <p>Твой персонаж: <strong id="bunker-my-profession">?</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/app.js?v=25"></script>
+  <script src="js/games/mafia.js?v=22"></script>
+  <script src="js/games/spy.js?v=22"></script>
+  <script src="js/games/alias.js?v=1"></script>
+</body>
+</html>
