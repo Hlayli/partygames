@@ -1113,7 +1113,11 @@ http.createServer((req, res) => {
     const playerId = params.get('player');
     res.write('data: ' + JSON.stringify({ type: 'state_update', room: roomState(code, playerId) }) + '\n\n');
     r.waiting.push({ res, id: playerId });
+    const keepAlive = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (e) { clearInterval(keepAlive); }
+    }, 25000);
     req.on('close', () => {
+      clearInterval(keepAlive);
       const idx = r.waiting.findIndex(w => w.id === playerId);
       if (idx > -1) r.waiting.splice(idx, 1);
     });
