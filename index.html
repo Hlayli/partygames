@@ -214,5 +214,10 @@
   <script src="js/games/mafia.js?v=22"></script>
   <script src="js/games/spy.js?v=22"></script>
   <script src="js/games/alias.js?v=1"></script>
+  <script>
+    if (localStorage.getItem('bunker_room') && localStorage.getItem('bunker_name')) {
+      document.getElementById('reconnect-btn')?.classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>
