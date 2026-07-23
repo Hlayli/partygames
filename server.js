@@ -1108,9 +1108,7 @@ http.createServer((req, res) => {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Access-Control-Allow-Origin': '*',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no',
-      'Transfer-Encoding': 'chunked'
+      'Connection': 'keep-alive'
     });
     const playerId = params.get('player');
     res.write('data: ' + JSON.stringify({ type: 'state_update', room: roomState(code, playerId) }) + '\n\n');
@@ -1225,6 +1223,38 @@ http.createServer((req, res) => {
       const r = rooms[code];
       if (!r) { json({ type: 'error', message: 'Комната не найдена' }); return; }
       if (r.status !== 'waiting') { json({ type: 'error', message: 'Игра уже началась' }); return; }
+      const pid = genId();
+      r.players[pid] = {
+        name: m.name.trim().slice(0, 20),
+        role: null,
+        isAlive: true,
+        isHost: false,
+        votedFor: null,
+        questionsAsked: 0,
+        aliasTeam: ALIAS_TEAM_ORDER[Math.floor(Math.random() * ALIAS_TEAM_ORDER.length)],
+        aliasTurnsTaken: 0,
+        bunkerCards: null,
+        bunkerRevealed: []
+      };
+      json({ type: 'init', playerId: pid, room: roomState(code, pid) });
+      broadcast(code);
+      return;
+    }
+
+    if (url === '/api/rejoin') {
+      if (!m.name || !m.code) { json({ type: 'error', message: 'Имя и код обязательны' }); return; }
+      const code = String(m.code).toUpperCase().trim();
+      const r = rooms[code];
+      if (!r || (r.status !== 'waiting' && !m.force)) { json({ type: 'error', message: 'Комната не найдена' }); return; }
+      // Find existing player with same name (reconnect)
+      const existing = Object.entries(r.players).find(([, p]) => p.name === m.name.trim().slice(0, 20) && !p.isHost);
+      if (existing) {
+        const pid = existing[0];
+        json({ type: 'init', playerId: pid, room: roomState(code, pid) });
+        broadcast(code);
+        return;
+      }
+      // Not found, create new
       const pid = genId();
       r.players[pid] = {
         name: m.name.trim().slice(0, 20),
@@ -1842,6 +1872,18 @@ if (url === '/api/alias_skip') {
       }
       if (m.cmd === 'remove_bot' && room.players[m.target] && room.players[m.target].isBot) {
         delete room.players[m.target];
+        json({ type: 'ok' });
+        broadcast(roomCode);
+        return;
+      }
+      if (m.cmd === 'kick' && room.players[m.target] && !room.players[m.target].isHost && room.status === 'waiting') {
+        delete room.players[m.target];
+        // Close SSE for kicked player
+        const kickIdx = room.waiting.findIndex(w => w.id === m.target);
+        if (kickIdx > -1) {
+          try { room.waiting[kickIdx].res.end(); } catch (e) {}
+          room.waiting.splice(kickIdx, 1);
+        }
         json({ type: 'ok' });
         broadcast(roomCode);
         return;

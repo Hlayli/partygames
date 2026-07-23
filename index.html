@@ -19,6 +19,7 @@
         <div class="home-actions">
           <button class="btn btn-primary" onclick="showCreateRoom()">Создать комнату</button>
           <button class="btn btn-secondary" onclick="showJoinRoom()">Присоединиться</button>
+          <button class="btn btn-secondary hidden" id="reconnect-btn" onclick="reconnect()">Переподключиться</button>
         </div>
         <div id="create-room-form" class="form-container hidden">
           <input type="text" id="host-name-input" class="input" placeholder="Твоё имя" maxlength="20">
