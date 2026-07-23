@@ -150,17 +150,23 @@ window.reconnect = async () => {
   const code = localStorage.getItem('bunker_room');
   const name = localStorage.getItem('bunker_name');
   if (!code || !name) { showToast('Нет данных для переподключения'); return; }
+  showToast('Переподключаюсь...');
   const res = await api('/api/rejoin', { code, name });
   if (res.type === 'error') { showToast(res.message); return; }
   playerId = res.playerId;
   roomCode = code;
-  isHost = false;
+  isHost = res.room.hostId === playerId;
   roomState = res.room;
   myRole = null;
   if (eventSource) eventSource.close();
   document.getElementById('room-code-label').textContent = code;
-  showScreen('screen-lobby');
-  renderLobby(res.room);
+  if (res.room.status === 'waiting' || res.room.phase === 'lobby') {
+    showScreen('screen-lobby');
+    renderLobby(res.room);
+  } else {
+    showScreen('screen-game-mafia');
+    renderMafiaGame(res.room);
+  }
   connectSSE();
 };
 

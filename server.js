@@ -1245,16 +1245,23 @@ http.createServer((req, res) => {
       if (!m.name || !m.code) { json({ type: 'error', message: 'Имя и код обязательны' }); return; }
       const code = String(m.code).toUpperCase().trim();
       const r = rooms[code];
-      if (!r || (r.status !== 'waiting' && !m.force)) { json({ type: 'error', message: 'Комната не найдена' }); return; }
+      if (!r) { json({ type: 'error', message: 'Комната не найдена' }); return; }
       // Find existing player with same name (reconnect)
-      const existing = Object.entries(r.players).find(([, p]) => p.name === m.name.trim().slice(0, 20) && !p.isHost);
+      const existing = Object.entries(r.players).find(([, p]) => p.name === m.name.trim().slice(0, 20));
       if (existing) {
         const pid = existing[0];
+        // Clean up old SSE connection for this player
+        const oldIdx = r.waiting.findIndex(w => w.id === pid);
+        if (oldIdx > -1) {
+          try { r.waiting[oldIdx].res.end(); } catch (e) {}
+          r.waiting.splice(oldIdx, 1);
+        }
         json({ type: 'init', playerId: pid, room: roomState(code, pid) });
         broadcast(code);
         return;
       }
-      // Not found, create new
+      // Not found — only create new if room is still waiting
+      if (r.status !== 'waiting') { json({ type: 'error', message: 'Игра уже идёт, жди хоста' }); return; }
       const pid = genId();
       r.players[pid] = {
         name: m.name.trim().slice(0, 20),
