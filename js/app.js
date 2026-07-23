@@ -487,8 +487,6 @@ function renderLobby(room) {
             <span>Путана</span>
             <span class="role-toggle-desc">блокирует игрока ночью</span>
           </label>
-          <button class="btn btn-small" onclick="addBot()" style="margin-top:6px">🤖 Добавить бота</button>
-          <p class="admin-hint">Боты всегда мирные</p>
         </div>
       `;
     } else {
